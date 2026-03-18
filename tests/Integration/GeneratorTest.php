@@ -39,31 +39,31 @@ final class GeneratorTest extends TestCase
             'editionClassName' => AbstractUpdatableFields::class,
             'isAbstract' => true,
             'isInterface' => false,
-            'isDeprecated' => false
+            'isDeprecated' => false,
         ],
         'OxidEsales\Eshop\Application\Model\Article' => [
             'editionClassName' => Article::class,
             'isAbstract' => false,
             'isInterface' => false,
-            'isDeprecated' => true
+            'isDeprecated' => true,
         ],
         'OxidEsales\Eshop\Core\Contract\ClassNameResolverInterface' => [
             'editionClassName' => ClassNameResolverInterface::class,
             'isAbstract' => false,
             'isInterface' => true,
-            'isDeprecated' => false
+            'isDeprecated' => false,
         ],
         'OxidEsales\Eshop\Core\FileSystem\FileSystem' => [
             'editionClassName' => FileSystem::class,
             'isAbstract' => false,
             'isInterface' => false,
-            'isDeprecated' => false
+            'isDeprecated' => false,
         ],
         'OxidEsales\Eshop\Core\Contract\IConfigurable' => [
             'editionClassName' => IConfigurable::class,
             'isAbstract' => false,
             'isInterface' => true,
-            'isDeprecated' => false
+            'isDeprecated' => false,
         ],
     ];
 
@@ -136,20 +136,20 @@ final class GeneratorTest extends TestCase
                 ['generated' => [
                     'sub' => ['some_file.txt' => 'some_file_contents',
                         'some_other_file.txt' => 'some_other_file_contents'],
-                    'emptyFolder' => []
+                    'emptyFolder' => [],
                 ]],
             'permissions' => 0444,
-            'relativePath' => 'sub'
+            'relativePath' => 'sub',
         ];
 
         // Test case that a sub directory cannot be deleted
         $data['unable_to_delete_directory'] = [
             'structure' =>
                 ['generated' => [
-                    'sub' => ['subsub' => []]
+                    'sub' => ['subsub' => []],
                 ]],
             'permissions' => 0444,
-            'relativePath' => 'sub'
+            'relativePath' => 'sub',
         ];
 
         return $data;
@@ -193,8 +193,8 @@ final class GeneratorTest extends TestCase
             'oxarticle' => [
                 'editionClassName' => Article::class,
                 'isAbstract' => false,
-                'isInterface' => false
-            ]
+                'isInterface' => false,
+            ],
         ];
         $data['case_no_unc_namespace'] = [
             'classMap' => $invalidMap,
@@ -204,8 +204,8 @@ final class GeneratorTest extends TestCase
             'OxidEsales\Eshop\Application\Model\Article' => [
                 'aaa' => '\OxidEsales\EshopUnknown\Application\Model\Article',
                 'bbb' => false,
-                'ccc' => false
-            ]
+                'ccc' => false,
+            ],
         ];
         $data['case_invalid_layout'] = ['classMap' => $invalidMap,];
 
@@ -275,8 +275,8 @@ final class GeneratorTest extends TestCase
         /** In this case a directory named 'Article.php' is present, so the file 'Article.php' cannot be created */
         $structure = [
             'generated' => [
-                'OxidEsales' => ['Eshop' => ['Application' => ['Model' => ['Article.php' => 'someFile.php']]]]
-            ]
+                'OxidEsales' => ['Eshop' => ['Application' => ['Model' => ['Article.php' => 'someFile.php']]]],
+            ],
         ];
 
         $this->copyTestDataIntoVirtualFileSystem('case_valid');

@@ -9,12 +9,13 @@ declare(strict_types=1);
 
 namespace OxidEsales\UnifiedNameSpaceGenerator;
 
+use function is_array;
+
 use OxidEsales\EshopCommunity\Internal\Framework\Edition\Edition;
 use OxidEsales\EshopCommunity\Internal\Framework\Edition\EditionDirectoriesLocator;
 use OxidEsales\UnifiedNameSpaceGenerator\Exceptions\InvalidUnifiedNamespaceClassMapException;
-use Symfony\Component\Filesystem\Path;
 
-use function is_array;
+use Symfony\Component\Filesystem\Path;
 
 readonly class EditionClassMapLoader
 {

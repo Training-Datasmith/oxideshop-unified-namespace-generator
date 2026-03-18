@@ -30,7 +30,7 @@ readonly class Plugin implements PluginInterface, EventSubscriberInterface
     {
         return [
             ScriptEvents::POST_INSTALL_CMD => 'callback',
-            ScriptEvents::POST_UPDATE_CMD  => 'callback'
+            ScriptEvents::POST_UPDATE_CMD  => 'callback',
         ];
     }
 

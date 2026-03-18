@@ -12,8 +12,6 @@ namespace OxidEsales\UnifiedNameSpaceGenerator\Tests\Integration;
 use OxidEsales\Eshop\Application\Model\Article;
 use OxidEsales\EshopCommunity;
 use OxidEsales\EshopCommunity\Internal\Framework\Edition\Edition;
-use OxidEsales\EshopEnterprise;
-use OxidEsales\EshopProfessional;
 use OxidEsales\UnifiedNameSpaceGenerator\UnifiedNameSpaceClassMapProvider;
 use PHPUnit\Framework\TestCase;
 
