@@ -69,7 +69,7 @@ class Generator
         $unifiedNameSpace = [];
 
         foreach ($classMap as $fullyQualifiedUnifiedClass => $editionClassDescription) {
-            $parts = explode('\\', $fullyQualifiedUnifiedClass);
+            $parts = explode('\\', (string) $fullyQualifiedUnifiedClass);
             $shortUnifiedClassName = array_pop($parts);
             $this->validateShortUnifiedClassName($shortUnifiedClassName, $fullyQualifiedUnifiedClass);
 
@@ -202,7 +202,7 @@ class Generator
         $message = 'Edition class description has a wrong layout. ' .
                    'It must be a non-empty array with the following keys ' . implode(',', $expectedKeys) . ' ';
 
-        if (!is_array($editionClassDescription) || empty($editionClassDescription)) {
+        if (empty($editionClassDescription)) {
             throw new \Exception($message);
         }
 
