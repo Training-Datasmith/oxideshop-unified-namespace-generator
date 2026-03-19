@@ -213,6 +213,17 @@ class Generator
             $message .= ' Actual edition class description is ' . var_export($editionClassDescription, true);
             throw new \Exception($message);
         }
+
+        // Validate that editionClassName is a fully-qualified PHP class name (backslash-separated identifiers)
+        // to prevent code injection when it is written into generated PHP files via the Twig template.
+        $editionClassName = (string) $editionClassDescription['editionClassName'];
+        $identifierPattern = '[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*';
+        if (!preg_match('/^\\\\?' . $identifierPattern . '(\\\\' . $identifierPattern . ')*$/', $editionClassName)) {
+            throw new \Exception(
+                'Edition class name "' . $editionClassName . '" contains invalid characters. ' .
+                'Only valid PHP fully-qualified class name characters are allowed.',
+            );
+        }
     }
 
     protected function validateShortUnifiedClassName(
@@ -222,6 +233,15 @@ class Generator
         if (!$shortUnifiedClassName) {
             throw new \Exception(
                 'Could not extract short unified a class name from string ' . $fullyQualifiedUnifiedClass,
+            );
+        }
+
+        // Ensure the class name is a valid PHP identifier to prevent code injection
+        // when it is written verbatim into generated PHP files via the Twig template.
+        if (!preg_match('/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/', $shortUnifiedClassName)) {
+            throw new \Exception(
+                'Short unified class name "' . $shortUnifiedClassName . '" contains invalid characters. ' .
+                'Only valid PHP identifier characters are allowed.',
             );
         }
     }
