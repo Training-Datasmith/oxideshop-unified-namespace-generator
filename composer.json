@@ -4,23 +4,23 @@
     "license": "proprietary",
     "type": "composer-plugin",
     "require": {
-      "composer-plugin-api": ">=2.0",
-      "twig/twig": "^3.14"
+        "composer-plugin-api": ">=2.0",
+        "twig/twig": "^3.14"
     },
     "require-dev": {
-      "composer/composer": ">=2.0"
+        "composer/composer": ">=2.0"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "autoload": {
         "psr-4": {
-            "OxidEsales\\UnifiedNameSpaceGenerator\\": "./src",
-            "OxidEsales\\Eshop\\": "./generated/OxidEsales/Eshop"
+            "Oxid_Esales\\Unified_Name_Space_Generator\\": "./src",
+            "Oxid_Esales\\Eshop\\": "./generated/OxidEsales/Eshop"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "OxidEsales\\UnifiedNameSpaceGenerator\\Tests\\": "./tests"
+            "Oxid_Esales\\Unified_Name_Space_Generator\\Tests\\": "./tests"
         }
     },
     "bin": [
