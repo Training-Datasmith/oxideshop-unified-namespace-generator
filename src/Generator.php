@@ -4,297 +4,164 @@
  * Copyright © OXID eSales AG. All rights reserved.
  * See LICENSE file for license details.
  */
+declare (strict_types=1);
+namespace Oxid_Esales\Unified_Name_Space_Generator;
 
-declare(strict_types=1);
-
-namespace OxidEsales\UnifiedNameSpaceGenerator;
-
-use FilesystemIterator;
-use OxidEsales\EshopCommunity\Internal\Framework\Edition\EditionResolver;
-use OxidEsales\UnifiedNameSpaceGenerator\Exceptions\FileSystemCompatibilityException;
-use OxidEsales\UnifiedNameSpaceGenerator\Exceptions\OutputDirectoryValidationException;
-use OxidEsales\UnifiedNameSpaceGenerator\Exceptions\PermissionException;
+use Filesystem_Iterator;
+use Oxid_Esales\Eshop_Community\Internal\Framework\Edition\Edition_Resolver;
+use Oxid_Esales\Unified_Name_Space_Generator\Exceptions\File_System_Compatibility_Exception;
+use Oxid_Esales\Unified_Name_Space_Generator\Exceptions\Output_Directory_Validation_Exception;
+use Oxid_Esales\Unified_Name_Space_Generator\Exceptions\Permission_Exception;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Twig\Environment;
-use Twig\Loader\FilesystemLoader;
-
+use Twig\Loader\Filesystem_Loader;
 class Generator
 {
-    public function __construct(
-        private readonly UnifiedNameSpaceClassMapProvider $unifiedNameSpaceClassMapProvider,
-        private readonly string $outputDirectory = __DIR__ . DIRECTORY_SEPARATOR . '..' .
-        DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR,
-        private readonly string $templateDir = __DIR__ . DIRECTORY_SEPARATOR . 'templates' . DIRECTORY_SEPARATOR,
-        private readonly Filesystem $fileSystem = new Filesystem(),
-    ) {
-        $this->validateOutputDirectoryPermissions();
-    }
-
-    public function cleanupOutputDirectory(): void
+    public function __construct(private readonly Unified_Name_Space_Class_Map_Provider $unified_name_space_class_map_provider, private readonly string $output_directory = __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'generated' . DIRECTORY_SEPARATOR, private readonly string $template_dir = __DIR__ . DIRECTORY_SEPARATOR . 'templates' . DIRECTORY_SEPARATOR, private readonly Filesystem $file_system = new Filesystem())
     {
-        $directoryIterator = new \RecursiveDirectoryIterator(
-            $this->outputDirectory,
-            FilesystemIterator::SKIP_DOTS
-        );
-
-        foreach ($directoryIterator as $current) {
-            if (!str_contains($current->getFilename(), '.gitkeep')) {
-                $this->fileSystem->remove($current->getPathname());
+        $this->validate_output_directory_permissions();
+    }
+    public function cleanup_output_directory(): void
+    {
+        $directory_iterator = new \Recursive_Directory_Iterator($this->output_directory, Filesystem_Iterator::SKIP_DOTS);
+        foreach ($directory_iterator as $current) {
+            if (!str_contains($current->get_filename(), '.gitkeep')) {
+                $this->file_system->remove($current->get_pathname());
             }
         }
     }
-
     public function generate(): void
     {
-        $this->generateClassFiles(
-            $this->unifiedNameSpaceClassMapProvider->getClassMap()
-        );
+        $this->generate_class_files($this->unified_name_space_class_map_provider->get_class_map());
     }
-
-    protected function generateClassFiles(array $classMap): void
+    protected function generate_class_files(array $class_map): void
     {
-        $backwardsCompatibilityMap = (new BackwardsCompatibilityClassMapProvider())->getClassMap();
-
-        $unifiedNamespaceArray = $this->getUnifiedNamespaceArray($classMap);
-        $this->validateUnifiedNamespaceArray($unifiedNamespaceArray);
-
-        foreach ($unifiedNamespaceArray as $unifiedSubNamespace => $editionClassDescriptions) {
-            $this->buildSubNamespace($unifiedSubNamespace, $editionClassDescriptions, $backwardsCompatibilityMap);
+        $backwards_compatibility_map = (new Backwards_Compatibility_Class_Map_Provider())->get_class_map();
+        $unified_namespace_array = $this->get_unified_namespace_array($class_map);
+        $this->validate_unified_namespace_array($unified_namespace_array);
+        foreach ($unified_namespace_array as $unified_sub_namespace => $edition_class_descriptions) {
+            $this->build_sub_namespace($unified_sub_namespace, $edition_class_descriptions, $backwards_compatibility_map);
         }
     }
-
-    protected function getUnifiedNamespaceArray(array $classMap): array
+    protected function get_unified_namespace_array(array $class_map): array
     {
-        $unifiedNameSpace = [];
-
-        foreach ($classMap as $fullyQualifiedUnifiedClass => $editionClassDescription) {
-            $parts = explode('\\', (string) $fullyQualifiedUnifiedClass);
-            $shortUnifiedClassName = array_pop($parts);
-            $this->validateShortUnifiedClassName($shortUnifiedClassName, $fullyQualifiedUnifiedClass);
-
-            $unifiedSubNamespace = implode('\\', $parts);
-            $this->validateUnifiedNamespace($unifiedSubNamespace, $fullyQualifiedUnifiedClass);
-
-            $this->validateEditionClassDescription($editionClassDescription);
-            $unifiedNameSpace[$unifiedSubNamespace][] = [
-                'isAbstract'            => $editionClassDescription['isAbstract'],
-                'isInterface'           => $editionClassDescription['isInterface'],
-                'isDeprecated'          => $editionClassDescription['isDeprecated'],
-                'shortUnifiedClassName' => $shortUnifiedClassName,
-                'editionClassName'      => $editionClassDescription['editionClassName'],
-            ];
+        $unified_name_space = [];
+        foreach ($class_map as $fully_qualified_unified_class => $edition_class_description) {
+            $parts = explode('\\', (string) $fully_qualified_unified_class);
+            $short_unified_class_name = array_pop($parts);
+            $this->validate_short_unified_class_name($short_unified_class_name, $fully_qualified_unified_class);
+            $unified_sub_namespace = implode('\\', $parts);
+            $this->validate_unified_namespace($unified_sub_namespace, $fully_qualified_unified_class);
+            $this->validate_edition_class_description($edition_class_description);
+            $unified_name_space[$unified_sub_namespace][] = ['isAbstract' => $edition_class_description['isAbstract'], 'isInterface' => $edition_class_description['isInterface'], 'isDeprecated' => $edition_class_description['isDeprecated'], 'shortUnifiedClassName' => $short_unified_class_name, 'editionClassName' => $edition_class_description['editionClassName']];
         }
-
-        return $unifiedNameSpace;
+        return $unified_name_space;
     }
-
-    protected function buildSubNamespace(
-        string $unifiedSubNamespace,
-        array $editionClassDescriptions,
-        array $backwardsCompatibilityMap
-    ): void {
-        $subNamespacePath = $this->createUnifiedNamespaceSubDirectory($unifiedSubNamespace);
-
-        foreach ($editionClassDescriptions as $editionClassDescription) {
-            $shortUnifiedClassName = $editionClassDescription['shortUnifiedClassName'];
-            $filePath = Path::join($subNamespacePath, $shortUnifiedClassName . '.php');
-            $fullyQualifiedUnifiedClass = '\\' . trim($unifiedSubNamespace .
-                    '\\' . $shortUnifiedClassName, '\\');
-
-            $backwardsCompatibleClass = $this->getBackwardsCompatibleClass(
-                $fullyQualifiedUnifiedClass,
-                $backwardsCompatibilityMap
-            );
-
-            $content = $this->renderContent(
-                $unifiedSubNamespace,
-                $editionClassDescription,
-                $fullyQualifiedUnifiedClass,
-                $backwardsCompatibleClass
-            );
-
-            $this->writeFile($filePath, $content);
-        }
-    }
-
-    private function getBackwardsCompatibleClass(
-        string $fullyQualifiedUnifiedClass,
-        array $backwardsCompatibilityMap
-    ): ?string {
-        $backwardsCompatibilityMapIndex = trim($fullyQualifiedUnifiedClass, '\\');
-
-        return $backwardsCompatibilityMap[$backwardsCompatibilityMapIndex] ?? null;
-    }
-
-    protected function renderContent(
-        string $unifiedSubNamespace,
-        array $editionClassDescription,
-        string $fullyQualifiedUnifiedClass,
-        ?string $backwardsCompatibleClass
-    ): string {
-        return $this->getTwig()
-            ->render(
-                'class_file_template.html.twig',
-                [
-                    'shopEdition' => (new EditionResolver())->getEdition()->value,
-                    'class' => $editionClassDescription,
-                    'namespace' => $unifiedSubNamespace,
-                    'fullyQualifiedUnifiedClass' => $fullyQualifiedUnifiedClass,
-                    'backwardsCompatibleClass' => $backwardsCompatibleClass,
-                ]
-            );
-    }
-
-    protected function writeFile(string $filePath, string $content): void
+    protected function build_sub_namespace(string $unified_sub_namespace, array $edition_class_descriptions, array $backwards_compatibility_map): void
     {
-        $this->validateOutputDirectoryPermissions();
-
-        $currentDirectory = dirname($filePath);
-        if (!is_writable($currentDirectory)) {
-            throw new PermissionException(
-                \sprintf(
-                    'Could not create file %s. The directory %s is not writable for user "%s".' .
-                    'Please fix the permissions on this directory and run this script again.',
-                    $filePath,
-                    $currentDirectory,
-                    get_current_user()
-                ),
-            );
+        $sub_namespace_path = $this->create_unified_namespace_sub_directory($unified_sub_namespace);
+        foreach ($edition_class_descriptions as $edition_class_description) {
+            $short_unified_class_name = $edition_class_description['shortUnifiedClassName'];
+            $file_path = Path::join($sub_namespace_path, $short_unified_class_name . '.php');
+            $fully_qualified_unified_class = '\\' . trim($unified_sub_namespace . '\\' . $short_unified_class_name, '\\');
+            $backwards_compatible_class = $this->get_backwards_compatible_class($fully_qualified_unified_class, $backwards_compatibility_map);
+            $content = $this->render_content($unified_sub_namespace, $edition_class_description, $fully_qualified_unified_class, $backwards_compatible_class);
+            $this->write_file($file_path, $content);
         }
-
-        if ((file_exists($filePath) && !is_writable($filePath)) || !$fileHandle = fopen($filePath, 'wb')) {
-            throw new FileSystemCompatibilityException(
-                \sprintf(
-                    'Could not open file handle for %s. There might be a problem with your file system.' .
-                    'Try to solve this problem and run this script again.',
-                    $filePath
-                ),
-            );
+    }
+    private function get_backwards_compatible_class(string $fully_qualified_unified_class, array $backwards_compatibility_map): ?string
+    {
+        $backwards_compatibility_map_index = trim($fully_qualified_unified_class, '\\');
+        return $backwards_compatibility_map[$backwards_compatibility_map_index] ?? null;
+    }
+    protected function render_content(string $unified_sub_namespace, array $edition_class_description, string $fully_qualified_unified_class, ?string $backwards_compatible_class): string
+    {
+        return $this->get_twig()->render('class_file_template.html.twig', ['shopEdition' => (new Edition_Resolver())->get_edition()->value, 'class' => $edition_class_description, 'namespace' => $unified_sub_namespace, 'fullyQualifiedUnifiedClass' => $fully_qualified_unified_class, 'backwardsCompatibleClass' => $backwards_compatible_class]);
+    }
+    protected function write_file(string $file_path, string $content): void
+    {
+        $this->validate_output_directory_permissions();
+        $current_directory = dirname($file_path);
+        if (!is_writable($current_directory)) {
+            throw new Permission_Exception(\sprintf('Could not create file %s. The directory %s is not writable for user "%s".' . 'Please fix the permissions on this directory and run this script again.', $file_path, $current_directory, get_current_user()));
         }
-
-        $result = fwrite($fileHandle, $content);
-        fclose($fileHandle);
+        if (file_exists($file_path) && !is_writable($file_path) || !$file_handle = fopen($file_path, 'wb')) {
+            throw new File_System_Compatibility_Exception(\sprintf('Could not open file handle for %s. There might be a problem with your file system.' . 'Try to solve this problem and run this script again.', $file_path));
+        }
+        $result = fwrite($file_handle, $content);
+        fclose($file_handle);
         if ($result === false) {
-            throw new \Exception(
-                \sprintf('Could not create file %s', $filePath)
-            );
+            throw new \Exception(\sprintf('Could not create file %s', $file_path));
         }
         if ($result === 0) {
-            throw new \Exception(
-                \sprintf('Created empty file %s', $filePath),
-            );
+            throw new \Exception(\sprintf('Created empty file %s', $file_path));
         }
     }
-
-    protected function validateUnifiedNamespace(string $unifiedSubNamespace, string $fullyQualifiedUnifiedClass): void
+    protected function validate_unified_namespace(string $unified_sub_namespace, string $fully_qualified_unified_class): void
     {
-        if (!$unifiedSubNamespace) {
-            throw new \Exception(
-                'Could not extract unified sub namespace from string ' . $fullyQualifiedUnifiedClass,
-            );
+        if (!$unified_sub_namespace) {
+            throw new \Exception('Could not extract unified sub namespace from string ' . $fully_qualified_unified_class);
         }
     }
-
-    protected function validateEditionClassDescription(array $editionClassDescription): void
+    protected function validate_edition_class_description(array $edition_class_description): void
     {
-        $expectedKeys = ['isAbstract', 'isInterface', 'editionClassName', 'isDeprecated'];
-        $message = 'Edition class description has a wrong layout. ' .
-                   'It must be a non-empty array with the following keys ' . implode(',', $expectedKeys) . ' ';
-
-        if (empty($editionClassDescription)) {
+        $expected_keys = ['isAbstract', 'isInterface', 'editionClassName', 'isDeprecated'];
+        $message = 'Edition class description has a wrong layout. ' . 'It must be a non-empty array with the following keys ' . implode(',', $expected_keys) . ' ';
+        if (empty($edition_class_description)) {
             throw new \Exception($message);
         }
-
-        $actualKeys = array_keys($editionClassDescription);
-        sort($expectedKeys);
-        sort($actualKeys);
-        if ($expectedKeys != $actualKeys) {
-            $message .= ' Actual edition class description is ' . var_export($editionClassDescription, true);
+        $actual_keys = array_keys($edition_class_description);
+        sort($expected_keys);
+        sort($actual_keys);
+        if ($expected_keys != $actual_keys) {
+            $message .= ' Actual edition class description is ' . var_export($edition_class_description, true);
             throw new \Exception($message);
         }
-
         // Validate that editionClassName is a fully-qualified PHP class name (backslash-separated identifiers)
         // to prevent code injection when it is written into generated PHP files via the Twig template.
-        $editionClassName = (string) $editionClassDescription['editionClassName'];
-        $identifierPattern = '[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*';
-        if (!preg_match('/^\\\\?' . $identifierPattern . '(\\\\' . $identifierPattern . ')*$/', $editionClassName)) {
-            throw new \Exception(
-                'Edition class name "' . $editionClassName . '" contains invalid characters. ' .
-                'Only valid PHP fully-qualified class name characters are allowed.',
-            );
+        $edition_class_name = (string) $edition_class_description['editionClassName'];
+        $identifier_pattern = '[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*';
+        if (!preg_match('/^\\\\?' . $identifier_pattern . '(\\\\' . $identifier_pattern . ')*$/', $edition_class_name)) {
+            throw new \Exception('Edition class name "' . $edition_class_name . '" contains invalid characters. ' . 'Only valid PHP fully-qualified class name characters are allowed.');
         }
     }
-
-    protected function validateShortUnifiedClassName(
-        string $shortUnifiedClassName,
-        string $fullyQualifiedUnifiedClass
-    ): void {
-        if (!$shortUnifiedClassName) {
-            throw new \Exception(
-                'Could not extract short unified a class name from string ' . $fullyQualifiedUnifiedClass,
-            );
+    protected function validate_short_unified_class_name(string $short_unified_class_name, string $fully_qualified_unified_class): void
+    {
+        if (!$short_unified_class_name) {
+            throw new \Exception('Could not extract short unified a class name from string ' . $fully_qualified_unified_class);
         }
-
         // Ensure the class name is a valid PHP identifier to prevent code injection
         // when it is written verbatim into generated PHP files via the Twig template.
-        if (!preg_match('/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/', $shortUnifiedClassName)) {
-            throw new \Exception(
-                'Short unified class name "' . $shortUnifiedClassName . '" contains invalid characters. ' .
-                'Only valid PHP identifier characters are allowed.',
-            );
+        if (!preg_match('/^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*$/', $short_unified_class_name)) {
+            throw new \Exception('Short unified class name "' . $short_unified_class_name . '" contains invalid characters. ' . 'Only valid PHP identifier characters are allowed.');
         }
     }
-
-    protected function validateUnifiedNamespaceArray(array $unifiedNamespaceArray): void
+    protected function validate_unified_namespace_array(array $unified_namespace_array): void
     {
-        if (empty($unifiedNamespaceArray)) {
-            throw new \Exception(
-                'No unified namespace found',
-            );
+        if (empty($unified_namespace_array)) {
+            throw new \Exception('No unified namespace found');
         }
     }
-
-    protected function validateOutputDirectoryPermissions(): void
+    protected function validate_output_directory_permissions(): void
     {
-        if (!is_dir($this->outputDirectory)) {
-            throw new OutputDirectoryValidationException(
-                \sprintf(
-                    'The directory "%s" where the class files have to be written to does not exist. Please ' .
-                    'create the directory "%s" with write permissions for the user "%s" and run this script again',
-                    $this->outputDirectory,
-                    $this->outputDirectory,
-                    get_current_user()
-                ),
-            );
+        if (!is_dir($this->output_directory)) {
+            throw new Output_Directory_Validation_Exception(\sprintf('The directory "%s" where the class files have to be written to does not exist. Please ' . 'create the directory "%s" with write permissions for the user "%s" and run this script again', $this->output_directory, $this->output_directory, get_current_user()));
         }
-
-        if (!is_writable($this->outputDirectory)) {
-            throw new OutputDirectoryValidationException(
-                \sprintf(
-                    'The directory "%s" where the class files have to be written to is not writable for user ' .
-                    '"%s". Please fix the permissions on this directory and run this script again',
-                    realpath($this->outputDirectory),
-                    get_current_user()
-                ),
-            );
+        if (!is_writable($this->output_directory)) {
+            throw new Output_Directory_Validation_Exception(\sprintf('The directory "%s" where the class files have to be written to is not writable for user ' . '"%s". Please fix the permissions on this directory and run this script again', realpath($this->output_directory), get_current_user()));
         }
     }
-
-    protected function createUnifiedNamespaceSubDirectory(string $unifiedSubNamespace): string
+    protected function create_unified_namespace_sub_directory(string $unified_sub_namespace): string
     {
-        $this->validateOutputDirectoryPermissions();
-
-        $unifiedSubNamespacePath = Path::join($this->outputDirectory, $unifiedSubNamespace);
-        $this->fileSystem->mkdir($unifiedSubNamespacePath, 0755);
-
-        return $unifiedSubNamespacePath;
+        $this->validate_output_directory_permissions();
+        $unified_sub_namespace_path = Path::join($this->output_directory, $unified_sub_namespace);
+        $this->file_system->mkdir($unified_sub_namespace_path, 0755);
+        return $unified_sub_namespace_path;
     }
-
-    protected function getTwig(): Environment
+    protected function get_twig(): Environment
     {
-        $loader = new FilesystemLoader($this->templateDir);
-
+        $loader = new Filesystem_Loader($this->template_dir);
         return new Environment($loader);
     }
 }
