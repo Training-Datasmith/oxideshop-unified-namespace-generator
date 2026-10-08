@@ -196,7 +196,7 @@ class Generator
         }
     }
 
-    protected function validateEditionClassDescription(array $editionClassDescription): void
+    protected function validateEditionClassDescription(mixed $editionClassDescription): void
     {
         $expectedKeys = ['isAbstract', 'isInterface', 'editionClassName', 'isDeprecated'];
         $message = 'Edition class description has a wrong layout. ' .
@@ -265,7 +265,10 @@ class Generator
     {
         $this->validateOutputDirectoryPermissions();
 
-        $unifiedSubNamespacePath = Path::join($this->outputDirectory, $unifiedSubNamespace);
+        $unifiedSubNamespacePath = Path::join(
+            $this->outputDirectory,
+            str_replace('\\', '/', $unifiedSubNamespace)
+        );
         $this->fileSystem->mkdir($unifiedSubNamespacePath, 0755);
 
         return $unifiedSubNamespacePath;
